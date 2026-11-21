@@ -310,6 +310,9 @@ export function run(input) {
     '\r',
     '"q"!,"q"\r?,Zürich 東京',
     '1,mid"quote,2.50,2026-11-21',
+    '"n1\nn2\rn3\r\nn4\nn5",tail,"a\n\nb"',
+    '"j"x"y,z,"j"\r\r',
+    'a\r\rb,c\r,"e""""f"',
   ];
   const oneByte = body.map((s) => s.replace(/[^\x00-\xff]/g, '\xe9'));
   for (let i = 0; i < 40; i++) {
