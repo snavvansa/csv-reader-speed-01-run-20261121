@@ -17,17 +17,21 @@ made one, a CR inside quotes made LF, a stray CR dropped), done on the escapes t
 
 - `csv.c` (built to `csv.wasm` by `build.sh`: clang for wasm32 with SIMD) reads a case's escaped text 16 bytes at a
   time: each block is stored to the output whole and the output moves past the bytes up to the first comma,
-  backslash or quote in it; those are the only bytes that mean anything to the reader. Errors are written in a side
-  region and put after the rows when the case ends.
-- `run.mjs` reads `cases.json` straight into the module's memory, walks the frame JSON.stringify writes around the
-  texts, calls `answer()` for each case, and writes the answers file from that memory with one call. The answers are
-  written over the input already read (they are about a tenth longer than the texts, so the input starts a little
-  ahead): no string is made of the file, and no page is touched twice.
+  backslash or quote in it; those are the only bytes that mean anything to the reader. A run of unquoted fields is
+  read in one loop, each comma written as `","`. Errors are written in a side region and put after the rows when the
+  case ends.
+- `run.cjs` reads `cases.json` a window (4 MB) at a time into the module's memory, walks the frame JSON.stringify
+  writes around the texts, and drives `begin()` / `step()` / `finish()` for each case; each time the window slides on,
+  the answers written so far go to the file. The answers are written over the input already read, so a few megabytes
+  serve the whole file and no string is ever made of it. A record cut by the window's edge is read again whole from
+  the next window.
 - Anything it does not expect (another JSON layout, a `\u` escape, answers that would outrun the input) is answered
-  the ordinary way: `solve.js`, a JavaScript reader of csv-reader's rules (`run(input)`), over `JSON.parse` and
+  the ordinary way: `solve.mjs`, a JavaScript reader of csv-reader's rules (`run(input)`), over `JSON.parse` and
   `JSON.stringify`.
+- `main.ts` is one `require()`: CommonJS starts quicker than an ES module, and V8 is told to compile the module with
+  its optimising tier up front.
 
-The rules `solve.js` reads by (`run({text, header})` returns exactly csv-reader's `{columns, rows, errors}`):
+The rules `solve.mjs` reads by (`run({text, header})` returns exactly csv-reader's `{columns, rows, errors}`):
 
 The reading rules are csv-reader's: a leading U+FEFF is dropped; a record ends at LF or CRLF and an empty line is no
 record; outside quotes a CR not followed by LF is dropped (`stray_cr`); a quoted field runs to the next undoubled
